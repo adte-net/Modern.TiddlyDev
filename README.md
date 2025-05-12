@@ -4,9 +4,7 @@
 
 <center>
 
-[![](https://img.shields.io/github/stars/tiddly-gittly/Modern.TiddlyDev?style=for-the-badge&color=red)](https://github.com/tiddly-gittly/Modern.TiddlyDev)&nbsp;&nbsp;[![](https://img.shields.io/github/forks/tiddly-gittly/Modern.TiddlyDev?style=for-the-badge)](https://github.com/tiddly-gittly/Modern.TiddlyDev)&nbsp;&nbsp;[![](https://img.shields.io/github/issues/tiddly-gittly/Modern.TiddlyDev?style=for-the-badge)](https://github.com/tiddly-gittly/Modern.TiddlyDev)&nbsp;&nbsp;[![](https://img.shields.io/github/watchers/tiddly-gittly/Modern.TiddlyDev?style=for-the-badge&color=blueviolet)](https://github.com/tiddly-gittly/Modern.TiddlyDev)&nbsp;&nbsp;[![](https://img.shields.io/github/license/tiddly-gittly/Modern.TiddlyDev?style=for-the-badge&label=Licence)](https://github.com/tiddly-gittly/Modern.TiddlyDev)
-
-[![](https://img.shields.io/badge/加入-太微_中文社区-blue?style=for-the-badge)](https://github.com/tiddly-gittly)&nbsp;&nbsp;[![](https://img.shields.io/github/followers/Gk0Wk?style=for-the-badge&label=Gk0Wk&color=critical)](https://github.com/Gk0Wk)
+[![](https://img.shields.io/github/stars/tiddly-gittly/Modern.TiddlyDev?style=for-the-badge&color=red)](https://github.com/tiddly-gittly/Modern.TiddlyDev)&nbsp;&nbsp;[![](https://img.shields.io/github/forks/tiddly-gittly/Modern.TiddlyDev?style=for-the-badge)](https://github.com/tiddly-gittly/Modern.TiddlyDev)&nbsp;&nbsp;[![](https://img.shields.io/github/issues/tiddly-gittly/Modern.TiddlyDev?style=for-the-badge)](https://github.com/tiddly-gittly/Modern.TiddlyDev)&nbsp;&nbsp;[![](https://img.shields.io/github/watchers/tiddly-gittly/Modern.TiddlyDev?style=for-the-badge&color=blueviolet)](https://github.com/tiddly-gittly/Modern.TiddlyDev)&nbsp;&nbsp;[![](https://img.shields.io/github/license/tiddly-gittly/Modern.TiddlyDev?style=for-the-badge&label=Licence)](https://github.com/tiddly-gittly/Modern.TiddlyDev)&nbsp;&nbsp;[![](https://img.shields.io/github/followers/Gk0Wk?style=for-the-badge&label=Gk0Wk&color=critical)](https://github.com/Gk0Wk)
 
 </center>
 
@@ -35,4 +33,10 @@ Don't worry, even if you are not good at programming, it doesn't matter, Modern.
 
 There's a lot of work here, but it's just Out-of-the-Box for you. Use it and get started on your modern TiddlyWiki plugin development journey!
 
-![](src/doc/wysiwyg-demo.gif)
+# Pending Updates
+* While using Node.js v23.9.0 and NPM 11.3.0 under Arch Linux the install has many errors that need to be resolved
+* Current repo includes too much..will make simple and establish templates
+* Chinese symbols are a distraction. Will remove all language support other than english.
+* Will remove all files, etc that are not relevent to my environment
+* Will add custom bash scripts for library generation, etc.
+
