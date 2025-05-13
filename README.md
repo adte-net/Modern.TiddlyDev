@@ -35,6 +35,18 @@ There's a lot of work here, but it's just Out-of-the-Box for you. Use it and get
 
 # Pending Updates
 * While using Node.js v23.9.0 and NPM 11.3.0 under Arch Linux the install has many errors that need to be resolved
+
+```
+npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+npm warn deprecated @humanwhocodes/config-array@0.13.0: Use @eslint/config-array instead
+npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+npm warn deprecated @humanwhocodes/object-schema@2.0.3: Use @eslint/object-schema instead
+npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+npm warn deprecated eslint@8.57.1: This version is no longer supported. Please see https://eslint.org/version-support for other options.
+
+```
+
 * Current repo includes too much..will make simple and establish templates
 * Chinese symbols are a distraction. Will remove all language support other than english.
 * Will remove all files, etc that are not relevent to my environment
