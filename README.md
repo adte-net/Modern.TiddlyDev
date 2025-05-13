@@ -52,3 +52,5 @@ npm warn deprecated eslint@8.57.1: This version is no longer supported. Please s
 * Will remove all files, etc that are not relevent to my environment
 * Will add custom bash scripts for library generation, etc.
 
+# Completed Tasks
+* Configured gh pages
