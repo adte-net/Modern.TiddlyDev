@@ -1,6 +1,9 @@
+created: 20250515015234671
 list-after: $:/core/ui/ViewTemplate/tags
-tags: ExcludeFromEmpty $:/tags/ViewTemplate
+modified: 20250515015238997
+tags: ExcludeFromEmpty
 title: LanguageSwitcher
+type: text/vnd.tiddlywiki
 
 <$list filter="[[$:/language]get[text]removeprefix[$:/languages/]else[en-GB]]" variable="lang">
 <%if [<lang>search[zh]] %>

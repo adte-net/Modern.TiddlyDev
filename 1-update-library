@@ -1,0 +1,339 @@
+#!/bin/bash
+
+# Configuration: Replace these with your details
+REPO_NAME="tiddlywiki-plugin-library"  # Name of the existing GitHub repository
+BRANCH="main"  # Target branch for the library
+TAG="v1.0.3"  # Version tag for the library update (e.g., v1.0.1)
+COMMIT_MESSAGE="Update TiddlyWiki Plugin Library from dist"
+GITHUB_USERNAME="adte-net"  # Your GitHub username
+DIST_FOLDER="dist"  # Folder containing the built plugin library
+TEMP_DIR="temp_deploy"  # Temporary directory for deployment
+LOG_FILE="update_library.log"  # Log file for debugging
+
+# Initialize logging
+echo "Starting update_library.sh at $(date)" > "$LOG_FILE"
+echo "Configuration:" >> "$LOG_FILE"
+echo "  REPO_NAME: $REPO_NAME" >> "$LOG_FILE"
+echo "  GITHUB_USERNAME: $GITHUB_USERNAME" >> "$LOG_FILE"
+echo "  BRANCH: $BRANCH" >> "$LOG_FILE"
+echo "  TAG: $TAG" >> "$LOG_FILE"
+echo "  DIST_FOLDER: $DIST_FOLDER" >> "$LOG_FILE"
+
+# Function to log and display messages
+log_and_echo() {
+  echo "$1"
+  echo "$(date): $1" >> "$LOG_FILE"
+}
+
+# Function to handle errors without exiting the session
+handle_error() {
+  log_and_echo "Error: $1"
+  log_and_echo "Script failed. Check $LOG_FILE for details."
+  return 1
+}
+
+# Check if gh is installed
+if ! command -v gh &> /dev/null; then
+  handle_error "GitHub CLI (gh) is not installed. Install it from https://cli.github.com/"
+  return 1
+fi
+log_and_echo "GitHub CLI (gh) found."
+
+# Check GitHub CLI authentication
+if ! gh auth status >/dev/null 2>&1; then
+  handle_error "GitHub CLI is not authenticated. Run 'gh auth login' first."
+  return 1
+fi
+log_and_echo "GitHub CLI authentication verified."
+
+# Check if inside a git repository
+if [ ! -d ".git" ]; then
+  handle_error "Not a git repository. Run 'git init' in your project folder first."
+  return 1
+fi
+log_and_echo "Git repository detected."
+
+# Detect current branch
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+if [ -z "$CURRENT_BRANCH" ]; then
+  handle_error "Could not detect current branch. Check git configuration."
+  return 1
+fi
+log_and_echo "Detected local branch: $CURRENT_BRANCH"
+
+# Rename master to main if necessary
+if [ "$CURRENT_BRANCH" != "$BRANCH" ]; then
+  log_and_echo "Renaming branch '$CURRENT_BRANCH' to '$BRANCH'..."
+  git branch -m "$CURRENT_BRANCH" "$BRANCH" >> "$LOG_FILE" 2>&1
+  if [ $? -ne 0 ]; then
+    handle_error "Failed to rename branch to $BRANCH."
+    return 1
+  fi
+  log_and_echo "Branch renamed to $BRANCH."
+fi
+
+# Check if dist folder exists and contains index.html
+if [ ! -d "$DIST_FOLDER" ]; then
+  handle_error "Dist folder '$DIST_FOLDER' does not exist. Ensure Modern.TiddlyDev build has run."
+  return 1
+fi
+if [ -z "$(ls -A "$DIST_FOLDER")" ]; then
+  handle_error "Dist folder '$DIST_FOLDER' is empty. Ensure Modern.TiddlyDev build has generated files."
+  return 1
+fi
+if [ ! -f "$DIST_FOLDER/index.html" ]; then
+  handle_error "No index.html found in $DIST_FOLDER. Ensure Modern.TiddlyDev build generated index.html."
+  return 1
+fi
+log_and_echo "Dist folder '$DIST_FOLDER' found with index.html."
+
+# Check for uncommitted changes in the main repository
+if [ -n "$(git status --porcelain)" ]; then
+  log_and_echo "Uncommitted changes detected in main repository. Committing them."
+  git add . >> "$LOG_FILE" 2>&1
+  git commit -m "Save changes before updating library" >> "$LOG_FILE" 2>&1
+  if [ $? -ne 0 ]; then
+    log_and_echo "No new changes to commit in main repository."
+  fi
+fi
+
+# Verify repository exists
+log_and_echo "Verifying GitHub repository: $REPO_NAME"
+gh repo view "$GITHUB_USERNAME/$REPO_NAME" >/dev/null 2>> "$LOG_FILE"
+if [ $? -ne 0 ]; then
+  handle_error "Repository $GITHUB_USERNAME/$REPO_NAME does not exist. Run create_library.sh first."
+  return 1
+fi
+log_and_echo "Repository $GITHUB_USERNAME/$REPO_NAME exists."
+
+# Construct repository URL (HTTPS)
+REPO_URL="https://github.com/$GITHUB_USERNAME/$REPO_NAME.git"
+log_and_echo "Repository URL: $REPO_URL"
+
+# Add or update GitHub remote
+log_and_echo "Adding/updating remote repository: $REPO_URL"
+if git remote | grep -q "^origin$"; then
+  log_and_echo "Remote 'origin' already exists. Updating URL."
+  git remote set-url origin "$REPO_URL" >> "$LOG_FILE" 2>&1
+  if [ $? -ne 0 ]; then
+    handle_error "Failed to update remote URL."
+    return 1
+  fi
+else
+  git remote add origin "$REPO_URL" >> "$LOG_FILE" 2>&1
+  if [ $? -ne 0 ]; then
+    handle_error "Failed to add remote."
+    return 1
+  fi
+fi
+
+# Verify remote
+log_and_echo "Verifying remote configuration..."
+git remote -v >> "$LOG_FILE" 2>&1
+if [ $? -ne 0 ]; then
+  handle_error "Failed to verify remote configuration."
+  return 1
+fi
+
+# Create a temporary directory for deployment
+log_and_echo "Creating temporary directory for deployment: $TEMP_DIR"
+rm -rf "$TEMP_DIR" >> "$LOG_FILE" 2>&1
+mkdir -p "$TEMP_DIR" >> "$LOG_FILE" 2>&1
+if [ $? -ne 0 ]; then
+  handle_error "Failed to create temporary directory."
+  return 1
+fi
+
+# Clone the existing repository to the temporary directory
+log_and_echo "Cloning existing repository to $TEMP_DIR..."
+git clone "$REPO_URL" "$TEMP_DIR" >> "$LOG_FILE" 2>&1
+if [ $? -ne 0 ]; then
+  handle_error "Failed to clone repository."
+  return 1
+fi
+cd "$TEMP_DIR" || handle_error "Failed to change to $TEMP_DIR."
+git checkout "$BRANCH" >> "$LOG_FILE" 2>&1
+if [ $? -ne 0 ]; then
+  handle_error "Failed to checkout $BRANCH branch."
+  return 1
+fi
+
+# Remove existing files (except .git) to ensure deletions are reflected
+log_and_echo "Removing existing files (except .git) to synchronize with $DIST_FOLDER..."
+find . -maxdepth 1 -not -path './.git' -not -path . -exec rm -rf {} + >> "$LOG_FILE" 2>&1
+if [ $? -ne 0 ]; then
+  handle_error "Failed to remove existing files."
+  return 1
+fi
+
+# Copy dist folder contents to temporary directory
+log_and_echo "Copying $DIST_FOLDER contents to $TEMP_DIR..."
+cp -r "../$DIST_FOLDER"/. . >> "$LOG_FILE" 2>&1
+if [ $? -ne 0 ]; then
+  handle_error "Failed to copy $DIST_FOLDER contents."
+  return 1
+fi
+# Debug: List copied files
+log_and_echo "Files in $TEMP_DIR after copy:"
+ls -l . >> "$LOG_FILE" 2>&1
+if [ ! -f "index.html" ]; then
+  handle_error "index.html not found in $TEMP_DIR after copy."
+  return 1
+fi
+
+# Create or update .github/workflows directory
+log_and_echo "Creating or updating GitHub Actions workflow directory..."
+mkdir -p ".github/workflows" >> "$LOG_FILE" 2>&1
+if [ $? -ne 0 ]; then
+  handle_error "Failed to create .github/workflows directory."
+  return 1
+fi
+
+# Create or update deploy.yml for GitHub Pages
+log_and_echo "Creating or updating GitHub Actions deploy.yml file..."
+cat << EOF > ".github/workflows/deploy.yml"
+name: Deploy TiddlyWiki Plugin Library to GitHub Pages
+on:
+  push:
+    branches: [$BRANCH]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+  deploy:
+    environment:
+      name: github-pages
+      url: \${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+EOF
+if [ $? -ne 0 ]; then
+  handle_error "Failed to create or update deploy.yml."
+  return 1
+fi
+log_and_echo "GitHub Actions deploy.yml file created or updated."
+
+# Create or update release.yml for GitHub Releases
+log_and_echo "Creating or updating GitHub Actions release.yml file..."
+cat << 'EOF' > ".github/workflows/release.yml"
+name: Create TiddlyWiki Plugin Library Release
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Debug - List files
+        run: ls -l
+      - name: Get tag name
+        id: tag
+        run: echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.tag.outputs.TAG_NAME }}
+          release_name: TiddlyWiki Plugin Library ${{ steps.tag.outputs.TAG_NAME }}
+          body: ${{ github.event.head_commit.message }}
+          draft: false
+          prerelease: false
+      - name: Upload Release Assets
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./index.html
+          asset_name: index.html
+          asset_content_type: text/html
+EOF
+if [ $? -ne 0 ]; then
+  handle_error "Failed to create or update release.yml."
+  return 1
+fi
+log_and_echo "GitHub Actions release.yml file created or updated."
+
+# Stage and commit changes
+log_and_echo "Staging and committing updated contents and workflows..."
+git add -A >> "$LOG_FILE" 2>&1
+git commit -m "$COMMIT_MESSAGE" >> "$LOG_FILE" 2>&1
+if [ $? -ne 0 ]; then
+  log_and_echo "No changes to commit. Proceeding with existing repository state."
+fi
+
+# Push to main branch
+log_and_echo "Pushing updated contents and workflows to $BRANCH branch..."
+git push origin "$BRANCH" >> "$LOG_FILE" 2>&1
+if [ $? -ne 0 ]; then
+  log_and_echo "Push failed. Attempting to pull and merge..."
+  git pull origin "$BRANCH" --rebase >> "$LOG_FILE" 2>&1
+  if [ $? -ne 0 ]; then
+    handle_error "Pull failed. Check credentials or repository setup."
+    return 1
+  fi
+  git push origin "$BRANCH" >> "$LOG_FILE" 2>&1
+  if [ $? -ne 0 ]; then
+    handle_error "Push still failed. Check $LOG_FILE for details."
+    return 1
+  fi
+fi
+log_and_echo "Push successful."
+
+# Check if tag exists and delete if necessary
+log_and_echo "Checking for existing tag: $TAG"
+if git ls-remote --tags origin | grep -q "$TAG"; then
+  log_and_echo "Tag $TAG already exists. Deleting remote tag to ensure workflow runs..."
+  git push origin :"$TAG" >> "$LOG_FILE" 2>&1
+  if [ $? -ne 0 ]; then
+    handle_error "Failed to delete existing tag $TAG."
+    return 1
+  fi
+fi
+
+# Create and push the tag to trigger the release workflow
+log_and_echo "Creating and pushing tag: $TAG"
+git tag "$TAG" >> "$LOG_FILE" 2>&1
+if [ $? -ne 0 ]; then
+  handle_error "Failed to create tag."
+  return 1
+fi
+git push origin "$TAG" >> "$LOG_FILE" 2>&1
+if [ $? -ne 0 ]; then
+  handle_error "Failed to push tag."
+  return 1
+fi
+log_and_echo "Tag pushed successfully. Release workflow should be triggered."
+
+# Clean up
+log_and_echo "Cleaning up temporary directory..."
+cd .. || handle_error "Failed to return to original directory."
+rm -rf "$TEMP_DIR" >> "$LOG_FILE" 2>&1
+log_and_echo "Temporary directory removed."
+
+log_and_echo "Success! Plugin library updated and pushed to $REPO_URL."
+log_and_echo "Check the 'Actions' tab on GitHub for the deployment and release workflows."
+log_and_echo "In the 'Create TiddlyWiki Plugin Library Release' workflow logs, check the 'Create Release' step for the release URL."
+log_and_echo "The plugin library release ($TAG) will be available in the 'Releases' tab after the workflow completes."
+log_and_echo "GitHub Pages may take a few minutes to update at https://$GITHUB_USERNAME.github.io/$REPO_NAME."
